@@ -19,39 +19,12 @@ void AirConditioner::setup() {
 }
 
 void AirConditioner::loop() {
-  if (millis() - this->last_extra_log_print > 3000) {
-    print_extra_log_in_this_loop = true;
-    this->last_extra_log_print = millis();
-  } else {
-    print_extra_log_in_this_loop = true;
-  }
-
-  if (millis() - this->last_recived_ > 10000 && millis() - this->last_status_change > 10000) {
-    ESP_LOGD(TAG, "Stuck reset error");
-    this->rx_buffer_.clear();
-    change_status(Status::after_fail);
-    return;
-  }
-
-  if (status == Status::after_fail) {
-    this->rx_buffer_.clear();
-    uint8_t byte;
-    while (available() && read_byte(&byte)) {
-      flush();
-    }
-
-    auto before_next_try = millis() - last_status_change > 8000;
-
-    if (print_extra_log_in_this_loop)
-      ESP_LOGD(TAG, "Waiting %d before asking for status after communitation fail.", before_next_try);
-
-    if (before_next_try <= 0) {
-      ESP_LOGD(TAG, "Reset status.");
-      change_status(Status::standby);
-    }
-
-    return;
-  }
+  // if (millis() - this->last_extra_log_print > 3000) {
+  //   print_extra_log_in_this_loop = true;
+  //   this->last_extra_log_print = millis();
+  // } else {
+  //   print_extra_log_in_this_loop = true;
+  // }
 
   if (this->next_hvac_settings_.valid) {
     send_status();
@@ -69,6 +42,50 @@ void AirConditioner::loop() {
 
     return;
   }
+
+  // if (millis() - this->last_recived_ > 10000 && millis() - this->last_status_change > 10000) {
+  //   ESP_LOGD(TAG, "Stuck reset error");
+  //   this->rx_buffer_.clear();
+  //   change_status(Status::after_fail);
+  //   return;
+  // }
+
+  // if (status == Status::after_fail) {
+  //   this->rx_buffer_.clear();
+  //   uint8_t byte;
+  //   while (available() && read_byte(&byte)) {
+  //     flush();
+  //   }
+
+  //   auto before_next_try = millis() - last_status_change > 8000;
+
+  //   // if (print_extra_log_in_this_loop)
+  //   //   ESP_LOGD(TAG, "Waiting %d before asking for status after communitation fail.", before_next_try);
+
+  //   if (before_next_try <= 0) {
+  //     ESP_LOGD(TAG, "Reset status.");
+  //     change_status(Status::standby);
+  //   }
+
+  //   return;
+  // }
+
+  // if (this->next_hvac_settings_.valid) {
+  //   send_status();
+  //   change_status(Status::waiting_for_change_confirm);
+  //   return;
+  // }
+
+  // if (millis() - this->last_recived_ > 2000 && status == Status::standby) {
+  //   ESP_LOGD(TAG, "Requsting status.");
+  //   std::vector<uint8_t> requst_status{0xF4, 0xF5, 0x00, 0x40, 0x0C, 0x00, 0x00, 0x01, 0x01,
+  //                                      0xFE, 0x01, 0x00, 0x00, 0x66, 0x00, 0x00, 0x00};
+  //   this->send_raw(requst_status);
+  //   // F4 F5 00 40 0C 00 00 01 01 FE 01 00 00 66 00 00 00 01 B3 F4 FB
+  //   change_status(Status::waiting_for_status_response);
+
+  //   return;
+  // }
 
   int available_to_read = 0;
   while ((available_to_read = this->available())) {
@@ -235,7 +252,25 @@ void AirConditioner::send_status() {
 
   send_raw(status);
   this->next_hvac_settings_.valid = false;
+  this->current_hvac_settings_ = this->next_hvac_settings_;
+  this->next_hvac_settings_.reset();
   ESP_LOGD(TAG, "send_status");
+}
+
+void AirConditioner::HvacSettings::reset() {
+  this->valid = false;
+  this->mode.reset();
+  this->fan_mode.reset();
+  this->swing_mode.reset();
+  this->target_temperature.reset();
+  this->preset.reset();
+}
+
+template<typename T> void update_property(T &property, const T &value, bool &flag) {
+  if (property != value) {
+    property = value;
+    flag = true;
+  }
 }
 
 void AirConditioner::control(const climate::ClimateCall &call) {
@@ -372,30 +407,20 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
   };
 
   // Is ON
-  {
-    byte mask = 0b00001000;
-    bool is_on = ((payload[16] & mask) != 0);
-    if (is_on) {
-      auto z = decode_climateMode((payload[16] >> 4));
-      this->mode = z;
-      ESP_LOGD(TAG, "mode %d", z);
-    } else {
-      ESP_LOGD(TAG, "Seem to be OFF.");
-      this->mode = climate::CLIMATE_MODE_OFF;
-    }
+  climate::ClimateMode mode = climate::CLIMATE_MODE_OFF;
+
+  byte mask = 0b00001000;
+  if ((payload[16] & mask) != 0) {
+    mode = decode_climateMode((payload[16] >> 4));
+    ESP_LOGD(TAG, "mode %d", mode);
+  } else {
+    ESP_LOGD(TAG, "Seem to be OFF.");
   }
 
   // Target temp
-  {
-    auto temp = payload[17];
-    this->target_temperature = temp;
-  }
 
-  // Current temp
-  {
-    auto temp = payload[18];
-    this->current_temperature = temp;
-  }
+  auto targetTemperature = static_cast<float>(payload[17]);
+  auto currenTemoerature = static_cast<float>(payload[18]);
 
   // Current hum
   {
@@ -410,39 +435,50 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
   }
 
   // Fan speed
-  {
-    auto wind = decode_wind_codes[payload[14]];
-    this->fan_mode = wind;
-    ESP_LOGD(TAG, "fan speed %d", wind);
+
+  optional<climate::ClimateFanMode> fanMode = climate::ClimateFanMode::CLIMATE_FAN_OFF;
+
+  auto dfm = decode_wind_codes[payload[14]];
+  if (dfm != nullopt) {
+    fanMode = dfm;
   }
+  ESP_LOGD(TAG, "fan speed %d", fanMode);
 
   // Swig detect
-  {
-    byte updown_mask = 0b01000000;
-    bool up_down = (payload[33] & updown_mask) != 0;
+  climate::ClimateSwingMode swingMode = climate::ClimateSwingMode::CLIMATE_SWING_OFF;
 
-    byte lr_mask = 0b10000000;
-    bool left_right = (payload[33] & lr_mask) != 0;
+  byte updown_mask = 0b01000000;
+  bool up_down = (payload[33] & updown_mask) != 0;
 
-    if (left_right && up_down) {
-      swing_mode = climate::ClimateSwingMode::CLIMATE_SWING_BOTH;
-    } else if (left_right) {
-      swing_mode = climate::ClimateSwingMode::CLIMATE_SWING_VERTICAL;
-    } else if (up_down) {
-      swing_mode = climate::ClimateSwingMode::CLIMATE_SWING_HORIZONTAL;
-    } else {
-      swing_mode = climate::ClimateSwingMode::CLIMATE_SWING_OFF;
-    }
+  byte lr_mask = 0b10000000;
+  bool left_right = (payload[33] & lr_mask) != 0;
+
+  if (left_right && up_down) {
+    swing_mode = climate::ClimateSwingMode::CLIMATE_SWING_BOTH;
+  } else if (left_right) {
+    swing_mode = climate::ClimateSwingMode::CLIMATE_SWING_VERTICAL;
+  } else if (up_down) {
+    swing_mode = climate::ClimateSwingMode::CLIMATE_SWING_HORIZONTAL;
   }
+
   ESP_LOGD(TAG, "acc status new");
-  this->publish_state();
+
+  bool need_publish = false;
+  update_property(this->target_temperature, targetTemperature, need_publish);
+  update_property(this->current_temperature, current_temperature, need_publish);
+  update_property(this->mode, mode, need_publish);
+  update_property(this->swing_mode, swing_mode, need_publish);
+  update_property(this->fan_mode, fanMode, need_publish);
+
+  if (need_publish)
+    this->publish_state();
 
 #ifdef USE_SENSOR
   {
     update_sub_sensor_(SubSensorType::INDOOR_TEMPERATURE, static_cast<float>(payload[18]));
     update_sub_sensor_(SubSensorType::INDOOR_COIL_TEMPERATURE, static_cast<float>(payload[19]));
 
-    update_sub_sensor_(SubSensorType::INDOOR_HUMIDITY, static_cast<float>(payload[21]) / 256.0);
+    update_sub_sensor_(SubSensorType::INDOOR_HUMIDITY, static_cast<float>(payload[21]) / 25.60);
     update_sub_sensor_(SubSensorType::OUTDOOR_TEMPERATURE, static_cast<float>(payload[40]));
     update_sub_sensor_(SubSensorType::OUTDOOR_COIL_TEMPERATURE, static_cast<float>(payload[41]));
 

@@ -49,6 +49,7 @@ class AirConditioner : public uart::UARTDevice, public climate::Climate, public 
   void decode_message(std::vector<uint8_t>);
 
   void send_status();
+  void on_status_change();
 
   std::vector<uint8_t> rx_buffer_;
   uint32_t last_recived_{0};
@@ -149,6 +150,8 @@ class AirConditioner : public uart::UARTDevice, public climate::Climate, public 
     }
   }
 };
+
+template<typename T> void update_property(T &property, const T &value, bool &flag);
 
 }  // namespace ac
 }  // namespace hisense
