@@ -297,6 +297,8 @@ void AirConditioner::control(const climate::ClimateCall &call) {
 
     this->next_hvac_settings_.valid = true;
   }
+
+  this->publish_state();
 }
 
 ParseStatus AirConditioner::parse_ac_message_byte_() {
