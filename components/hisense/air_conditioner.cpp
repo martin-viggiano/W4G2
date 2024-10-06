@@ -279,21 +279,28 @@ void AirConditioner::control(const climate::ClimateCall &call) {
     ESP_LOGW(TAG, "New settings come faster then processed!");
   }
   {
-    if (call.get_target_temperature().has_value())
+    if (call.get_target_temperature().has_value()) {
       this->next_hvac_settings_.target_temperature = call.get_target_temperature().value();
-
+      this->target_temperature = *call.get_target_temperature();
+    }
     if (call.get_mode().has_value()) {
       this->next_hvac_settings_.mode = call.get_mode();
       this->mode = *call.get_mode();
     }
-    if (call.get_fan_mode().has_value())
+    if (call.get_fan_mode().has_value()) {
       this->next_hvac_settings_.fan_mode = call.get_fan_mode();
-    if (call.get_swing_mode().has_value())
+      this->fan_mode = *call.get_fan_mode();
+    }
+
+    if (call.get_swing_mode().has_value()) {
       this->next_hvac_settings_.swing_mode = call.get_swing_mode();
-    if (call.get_target_temperature().has_value())
-      this->next_hvac_settings_.target_temperature = call.get_target_temperature();
-    if (call.get_preset().has_value())
+      this->swing_mode = *call.get_swing_mode();
+    }
+
+    if (call.get_preset().has_value()) {
       this->next_hvac_settings_.preset = call.get_preset();
+      this->preset = *call.get_preset();
+    }
 
     this->next_hvac_settings_.valid = true;
   }
