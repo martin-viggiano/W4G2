@@ -253,7 +253,7 @@ void AirConditioner::send_status() {
   send_raw(status);
   this->next_hvac_settings_.valid = false;
   this->current_hvac_settings_ = this->next_hvac_settings_;
-  this->next_hvac_settings_.reset();
+  // this->next_hvac_settings_.reset();
   ESP_LOGD(TAG, "send_status");
 }
 
