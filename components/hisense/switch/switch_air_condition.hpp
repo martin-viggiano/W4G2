@@ -12,8 +12,8 @@ namespace ac {
 static const char *const TAG = "climate.air_conditioner";
 
 class AirConditionSwitch : public Component, public switch_::Switch {
-public:
-  AirConditionSwitch(){};
+ public:
+  AirConditionSwitch() {};
   void write_state(bool state) {
     parent_->set_display_switch(state);
     ESP_LOGD(TAG, "Change state: %d", state);
@@ -21,9 +21,9 @@ public:
   };
   void set_parent(AirConditioner *parent) { this->parent_ = parent; }
 
-protected:
+ protected:
   AirConditioner *parent_;
 };
-} // namespace ac
-} // namespace hisense
-} // namespace esphome
+}  // namespace ac
+}  // namespace hisense
+}  // namespace esphome

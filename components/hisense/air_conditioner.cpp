@@ -389,6 +389,24 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
     this->target_temperature = temp;
   }
 
+  // Current temp
+  {
+    auto temp = payload[18];
+    this->current_temperature = temp;
+  }
+
+  // Current hum
+  {
+    auto humidity = payload[21];
+    this->current_humidity = humidity;
+  }
+
+  // Target hum
+  {
+    auto humidity = payload[20];
+    this->target_humidity = humidity;
+  }
+
   // Fan speed
   {
     auto wind = decode_wind_codes[payload[14]];

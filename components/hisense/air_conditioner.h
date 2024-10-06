@@ -110,6 +110,7 @@ class AirConditioner : public uart::UARTDevice, public climate::Climate, public 
     void reset();
   };
 
+  HvacSettings current_hvac_settings_;
   HvacSettings next_hvac_settings_;
 
   climate::ClimateMode decode_climateMode(const int mode) {
