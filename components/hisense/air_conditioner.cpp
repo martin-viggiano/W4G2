@@ -417,22 +417,10 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
     ESP_LOGD(TAG, "Seem to be OFF.");
   }
 
-  // Target temp
-
   auto targetTemperature = static_cast<float>(payload[17]);
-  auto currenTemoerature = static_cast<float>(payload[18]);
-
-  // Current hum
-  {
-    auto humidity = payload[21];
-    this->current_humidity = humidity;
-  }
-
-  // Target hum
-  {
-    auto humidity = payload[20];
-    this->target_humidity = humidity;
-  }
+  auto currentTemperature = static_cast<float>(payload[18]);
+  auto targetHumidity = static_cast<float>(payload[20]);
+  auto currentHumidity = static_cast<float>(payload[21]);
 
   // Fan speed
 
@@ -466,6 +454,8 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
   bool need_publish = false;
   update_property(this->target_temperature, targetTemperature, need_publish);
   update_property(this->current_temperature, current_temperature, need_publish);
+  update_property(this->target_humidity, target_humidity, need_publish);
+  update_property(this->current_humidity, current_humidity, need_publish);
   update_property(this->mode, mode, need_publish);
   update_property(this->swing_mode, swing_mode, need_publish);
   update_property(this->fan_mode, fanMode, need_publish);
@@ -478,7 +468,7 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
     update_sub_sensor_(SubSensorType::INDOOR_TEMPERATURE, static_cast<float>(payload[18]));
     update_sub_sensor_(SubSensorType::INDOOR_COIL_TEMPERATURE, static_cast<float>(payload[19]));
 
-    update_sub_sensor_(SubSensorType::INDOOR_HUMIDITY, static_cast<float>(payload[21]) / 25.60);
+    update_sub_sensor_(SubSensorType::INDOOR_HUMIDITY, static_cast<float>(payload[21]) / 2.560);
     update_sub_sensor_(SubSensorType::OUTDOOR_TEMPERATURE, static_cast<float>(payload[40]));
     update_sub_sensor_(SubSensorType::OUTDOOR_COIL_TEMPERATURE, static_cast<float>(payload[41]));
 
