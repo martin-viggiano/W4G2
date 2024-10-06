@@ -11,6 +11,9 @@ from esphome.const import (
     CONF_ADDRESS,
     CONF_DISABLE_CRC,
     CONF_DISPLAY,
+    CONF_NUM_ATTEMPTS,
+    CONF_PERIOD,
+    CONF_TIMEOUT,
 )
 from esphome import pins
 
@@ -28,6 +31,9 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(AirConditioner),
             cv.Optional(CONF_FLOW_CONTROL_PIN): pins.gpio_output_pin_schema,
+            cv.Optional(CONF_PERIOD, default="1s"): cv.time_period,
+            cv.Optional(CONF_TIMEOUT, default="2s"): cv.time_period,
+            cv.Optional(CONF_NUM_ATTEMPTS, default=3): cv.int_range(min=1, max=5),
         }
     )
     .extend(uart.UART_DEVICE_SCHEMA)
@@ -42,7 +48,6 @@ def validate_visual(config):
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
     await climate.register_climate(var, config)
