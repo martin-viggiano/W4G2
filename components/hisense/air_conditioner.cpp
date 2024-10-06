@@ -453,7 +453,7 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
 
   bool need_publish = false;
   update_property(this->target_temperature, targetTemperature, need_publish);
-  update_property(this->current_temperature, current_temperature, need_publish);
+  update_property(this->current_temperature, currentTemperature, need_publish);
   update_property(this->target_humidity, target_humidity, need_publish);
   update_property(this->current_humidity, current_humidity, need_publish);
   update_property(this->mode, mode, need_publish);
