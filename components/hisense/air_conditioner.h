@@ -46,10 +46,11 @@ class AirConditioner : public uart::UARTDevice, public climate::Climate, public 
 
   ParseStatus parse_ac_message_byte_();
 
+  void on_status_change();
+
   void decode_message(std::vector<uint8_t>);
 
   void send_status();
-  void on_status_change();
 
   std::vector<uint8_t> rx_buffer_;
   uint32_t last_recived_{0};

@@ -462,8 +462,10 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
   update_property(this->swing_mode, swingMode, need_publish);
   update_property(this->fan_mode, fanMode, need_publish);
 
-  if (need_publish)
+  if (need_publish) {
     this->publish_state();
+    ESP_LOGD(TAG, "publish state");
+  }
 
 #ifdef USE_SENSOR
   {
