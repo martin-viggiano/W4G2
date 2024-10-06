@@ -16,6 +16,8 @@ void AirConditioner::setup() {
   }
   this->last_status_change = millis();
   this->status = Status::standby;
+
+  this->publish_state();
 }
 
 void AirConditioner::loop() {
