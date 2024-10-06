@@ -104,14 +104,16 @@ float AirConditioner::get_setup_priority() const {
 
 climate::ClimateTraits AirConditioner::traits() {
   auto traits = climate::ClimateTraits();
+
   traits.set_supports_current_temperature(true);
-  traits.set_visual_min_temperature(17);
+  traits.set_visual_min_temperature(16);
   traits.set_visual_max_temperature(30);
   traits.set_visual_temperature_step(1);
 
   traits.set_supported_modes({climate::CLIMATE_MODE_OFF, climate::CLIMATE_MODE_COOL, climate::CLIMATE_MODE_HEAT,
                               climate::CLIMATE_MODE_FAN_ONLY, climate::CLIMATE_MODE_DRY,
                               climate::CLIMATE_MODE_HEAT_COOL});
+
   traits.set_supported_swing_modes({climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_BOTH,
                                     climate::CLIMATE_SWING_VERTICAL, climate::CLIMATE_SWING_HORIZONTAL});
 
@@ -287,7 +289,7 @@ ParseStatus AirConditioner::parse_ac_message_byte_() {
       return ParseStatus::PARSE_ERROR;
     }
   } else {
-    ESP_LOGD(TAG, "Not found end sequence yet at: %d.", at);
+    // ESP_LOGD(TAG, "Not found end sequence yet at: %d.", at);
     return ParseStatus::NOT_FULL;
   }
 
@@ -440,7 +442,7 @@ void AirConditioner::decode_message(std::vector<uint8_t> payload) {
     update_sub_sensor_(SubSensorType::INDOOR_TEMPERATURE, static_cast<float>(payload[18]));
     update_sub_sensor_(SubSensorType::INDOOR_COIL_TEMPERATURE, static_cast<float>(payload[19]));
 
-    update_sub_sensor_(SubSensorType::INDOOR_HUMIDITY, static_cast<float>(payload[21]));
+    update_sub_sensor_(SubSensorType::INDOOR_HUMIDITY, static_cast<float>(payload[21]) / 256.0);
     update_sub_sensor_(SubSensorType::OUTDOOR_TEMPERATURE, static_cast<float>(payload[40]));
     update_sub_sensor_(SubSensorType::OUTDOOR_COIL_TEMPERATURE, static_cast<float>(payload[41]));
 
